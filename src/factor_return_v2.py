@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from data_loader import load_pctchange_daily_pkl
+from src.data_loader import load_pctchange_daily_pkl
 import numpy as np
 import pandas as pd
 

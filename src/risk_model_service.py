@@ -6,8 +6,8 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from risk_covariance import compute_factor_covariance_matrix
-from risk_specific import align_specific_to_universe, compute_specific_variance_matrix
+from src.risk_covariance import compute_factor_covariance_matrix
+from src.risk_specific import align_specific_to_universe, compute_specific_variance_matrix
 
 
 STYLE_FACTORS = [

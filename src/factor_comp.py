@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 
-from data_processor import mad_winsorize_series
+from src.data_processor import mad_winsorize_series
 
 
 # -----------------------------
