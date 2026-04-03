@@ -15,12 +15,12 @@ def calc_ic(df: pd.DataFrame, factor_col: str, return_col: str = "icfactor") -> 
     Input: df(含因子与收益列的数据), factor_col(因子列), return_col(收益列)。
     Output: (ic_mean, ic_values, icir)。
     """
-    grouped = df.groupby("trade_date")
-    ic_values: List[float] = []
-    for _, sub_df in grouped:
-        ic_raw = sub_df[factor_col].corr(sub_df[return_col], method="spearman")
-        ic_val = float(ic_raw) if pd.notna(ic_raw) else np.nan
-        ic_values.append(ic_val)
+    ic_series = df.groupby("trade_date").apply(
+        lambda x: x[factor_col].corr(x[return_col], method="spearman"),
+        include_groups=False
+    )
+    ic_values = [float(x) if pd.notna(x) else np.nan for x in ic_series.tolist()]
+
     ic_mean = float(np.nanmean(ic_values))
     ic_std = float(np.nanstd(ic_values))
     icir = float(ic_mean / ic_std) if ic_std != 0 else np.nan
