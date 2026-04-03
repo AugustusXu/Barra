@@ -624,16 +624,6 @@ def compute_value_earnings_yield(
     fac["ETOP"] = _safe_inverse(fac["s_val_pe"])
     fac["PCF"] = _safe_inverse(fac["s_val_pcf_ncf"])
 
-    #fac["CETOP"] = np.nan
-    #if fy0 is not None and not fy0.empty:
-    #    f = _ensure_datetime(fy0.copy())
-    #    if "est_dt" in f.columns:
-    #        f = f.rename(columns={"est_dt": "trade_date"})
-    #    if "est_pe" in f.columns:
-    #        f["CETOP"] = _safe_inverse(f["est_pe"])
-    #        fac = fac.merge(f[["stock_code", "trade_date", "CETOP"]], on=["stock_code", "trade_date"], how="left")
-
-
     fac["CETOP"] = np.nan
     if fy0 is not None and not fy0.empty:
         f = _ensure_datetime(fy0.copy())
