@@ -148,15 +148,39 @@ def compute_volatility_factors(
         if valid.empty:
             continue
 
-        x = np.c_[np.ones((window, 1)), mkt.fillna(0.0).values]
+        m_vals = mkt.fillna(0.0).values
         y = valid.fillna(0.0).values
-        beta = np.linalg.pinv(x.T @ w_diag @ x) @ x.T @ w_diag @ y
 
-        alpha_s = pd.Series(beta[0], index=valid.columns)
-        beta_s = pd.Series(beta[1], index=valid.columns)
+        sum_w = np.sum(w)
+        sum_wm = np.dot(w, m_vals)
+        sum_wmm = np.dot(w, m_vals**2)
+        sum_wy = w @ y
+        sum_wmy = (w * m_vals) @ y
+        sum_wyy = w @ (y**2)
 
-        resid = y - x @ beta
-        hsig = pd.Series(np.sqrt((w[:, None] * (resid ** 2)).sum(axis=0) / w.sum()), index=valid.columns)
+        det = sum_w * sum_wmm - sum_wm**2
+
+        if det == 0:
+            alpha_v = sum_wy / sum_w if sum_w != 0 else np.zeros(y.shape[1])
+            beta_v = np.zeros(y.shape[1])
+        else:
+            alpha_v = (sum_wmm * sum_wy - sum_wm * sum_wmy) / det
+            beta_v = (sum_w * sum_wmy - sum_wm * sum_wy) / det
+
+        alpha_s = pd.Series(alpha_v, index=valid.columns)
+        beta_s = pd.Series(beta_v, index=valid.columns)
+
+        # resid = y - (alpha + beta * m)
+        # hsig^2 = sum(w * resid^2) / sum(w)
+        hsig2_sq = (sum_wyy
+                    + alpha_v**2 * sum_w
+                    + beta_v**2 * sum_wmm
+                    - 2 * alpha_v * sum_wy
+                    - 2 * beta_v * sum_wmy
+                    + 2 * alpha_v * beta_v * sum_wm) / sum_w
+
+        hsig_v = np.sqrt(np.maximum(hsig2_sq, 0.0))
+        hsig = pd.Series(hsig_v, index=valid.columns)
 
         day_ret = block.iloc[-1].drop(index=market_code, errors="ignore")
         dstd = block.drop(columns=[market_code]).std(axis=0, ddof=1)
@@ -703,15 +727,26 @@ def compute_value_long_term_reversal(
         raise ValueError(f"长期反转计算缺少市场指数列: {market_code}")
 
     alpha_rows = []
-    w_diag = np.diag(w)
     for i in range(window - 1, len(ret)):
         block = ret.iloc[i - window + 1 : i + 1]
-        mkt = block[market_code].fillna(0).values
-        x = np.c_[np.ones((window, 1)), mkt]
+        m_vals = block[market_code].fillna(0).values
         sub = block.drop(columns=[market_code]).fillna(0)
-        beta = np.linalg.pinv(x.T @ w_diag @ x) @ x.T @ w_diag @ sub.values
+        y = sub.values
+
+        sum_w = np.sum(w)
+        sum_wm = np.dot(w, m_vals)
+        sum_wmm = np.dot(w, m_vals**2)
+        sum_wy = w @ y
+        sum_wmy = (w * m_vals) @ y
+
+        det = sum_w * sum_wmm - sum_wm**2
+        if det == 0:
+            alpha_v = sum_wy / sum_w if sum_w != 0 else np.zeros(y.shape[1])
+        else:
+            alpha_v = (sum_wmm * sum_wy - sum_wm * sum_wmy) / det
+
         day = block.index[-1]
-        for code, a in zip(sub.columns, beta[0]):
+        for code, a in zip(sub.columns, alpha_v):
             alpha_rows.append({"trade_date": day, "stock_code": code, "Longterm_Alpha": -a})
 
     alpha_df = pd.DataFrame(alpha_rows)
