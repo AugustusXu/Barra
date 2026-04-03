@@ -6,7 +6,6 @@ from typing import Dict, List, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy import stats
 
 
 def calc_ic(df: pd.DataFrame, factor_col: str, return_col: str = "icfactor") -> Tuple[float, List[float], float]:
