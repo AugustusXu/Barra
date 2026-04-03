@@ -311,10 +311,10 @@ def optimize_portfolio(
         cols = list(exposure_matrix.columns)
         ind_cols = [c for c in cols if c.startswith("Ind_")]
         if "Size" in cols:
-            size_idx = cols.index("Size")
+            size_vec = exposure_matrix["Size"].to_numpy(dtype=float)
             constraints += [
-                exposure_matrix.to_numpy(dtype=float).T @ w_act <= np.where(np.arange(len(cols)) == size_idx, cfg.size_restriction_max_active_return, np.inf),
-                exposure_matrix.to_numpy(dtype=float).T @ w_act >= np.where(np.arange(len(cols)) == size_idx, -cfg.size_restriction_max_active_return, -np.inf),
+                size_vec.T @ w_act <= cfg.size_restriction_max_active_return,
+                size_vec.T @ w_act >= -cfg.size_restriction_max_active_return,
             ]
 
         if ind_cols:
