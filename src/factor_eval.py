@@ -86,9 +86,9 @@ def calc_group_nav(
             continue
 
         group_returns = []
+        group_means = sub.groupby("factor_group")[return_col].mean()
         for gid in range(n_groups):
-            g = sub[sub["factor_group"] == gid]
-            r = float(g[return_col].mean() / 100.0 + 1.0)
+            r = float(group_means.loc[gid] / 100.0 + 1.0)
             group_returns.append(r)
             buckets[f"G{gid+1}"].append(r)
 
