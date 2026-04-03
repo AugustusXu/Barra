@@ -6,7 +6,6 @@ from src.data_loader import load_pctchange_daily_pkl
 
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
 
 
 KEY_COLS = {"stock_code", "trade_date", "next_return", "pctchange", "icfactor", "ts_code"}
@@ -132,27 +131,36 @@ def compute_daily_factor_returns(
         y = sub["next_return"]
 
         try:
+            x_mat = X.to_numpy(dtype=float)
+            y_vec = y.to_numpy(dtype=float)
+
             if weight_col is not None and weight_col in sub.columns:
                 w = pd.to_numeric(sub[weight_col], errors="coerce")
                 w = w.clip(lower=0.0)
                 w = w.replace([np.inf, -np.inf], np.nan).fillna(0.0)
                 w = np.sqrt(w)
-                model = sm.WLS(y, X, weights=w)
+
+                w_vec = w.to_numpy(dtype=float)
+                sqrt_w = np.sqrt(w_vec)
+                x_w = x_mat * sqrt_w[:, None]
+                y_w = y_vec * sqrt_w
+                beta = np.linalg.pinv(x_w.T @ x_w) @ (x_w.T @ y_w)
             else:
-                model = sm.OLS(y, X)
-            result = model.fit()
+                beta = np.linalg.pinv(x_mat.T @ x_mat) @ (x_mat.T @ y_vec)
+
+            pred = x_mat @ beta
+            resid = y_vec - pred
         except Exception:
             continue
 
-        params = result.params.reindex(factor_cols)
-        params.name = trade_date
+        params = pd.Series(beta, index=factor_cols, name=trade_date)
         factor_ret_rows.append(params)
 
         resid_df = pd.DataFrame(
             {
                 "trade_date": trade_date,
                 "stock_code": sub["stock_code"].values,
-                "specific_return": result.resid.values,
+                "specific_return": resid,
             }
         )
         specific_rows.append(resid_df)
